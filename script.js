@@ -121,18 +121,26 @@ function isValidPlay(card, top) {
 // -------------------------------
 
 function chooseSuitForWild(card) {
-    const chosen = prompt("You played an 8! Choose a suit: ♠ ♥ ♦ ♣");
+    // Show the dropdown UI
+    document.getElementById("suit-selector").style.display = "block";
+    setStatus("You played an 8! Choose a suit.");
 
-    if (!suits.includes(chosen)) {
-        setStatus("Invalid suit. Turn skipped.");
-    } else {
+    // When player confirms
+    document.getElementById("confirm-suit").onclick = () => {
+        const chosen = document.getElementById("suit-dropdown").value;
+
+        // Apply suit to the card
         card.suit = chosen;
-    }
 
-    updateDisplay();
-    setStatus("Computer's turn...");
-    setTimeout(computerTurn, 1000);
+        // Hide the menu again
+        document.getElementById("suit-selector").style.display = "none";
+
+        updateDisplay();
+        setStatus("Computer's turn...");
+        setTimeout(computerTurn, 800);
+    };
 }
+
 
 // -------------------------------
 // DRAW CARD

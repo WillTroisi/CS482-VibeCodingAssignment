@@ -1,68 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="styles.css">
     <meta charset="UTF-8">
-    <title>Crazy Eights</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            text-align: center;
-        }
-
-        #status {
-            margin-bottom: 20px;
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-
-        #center-area {
-            margin: 20px 0;
-        }
-
-        #discard-pile {
-            display: inline-block;
-            padding: 20px;
-            border: 2px solid #000;
-            border-radius: 8px;
-            min-width: 80px;
-            min-height: 120px;
-            vertical-align: middle;
-        }
-
-        #draw-button {
-            margin-left: 20px;
-            padding: 10px 20px;
-            font-size: 1em;
-        }
-
-        #player-hand {
-            margin-top: 30px;
-        }
-
-        .card {
-            display: inline-block;
-            padding: 15px;
-            border: 1px solid #000;
-            border-radius: 5px;
-            margin: 5px;
-            min-width: 40px;
-            font-size: 1.1em;
-            cursor: pointer;
-        }
-    </style>
+    <title>Crazy 8s Card Game</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <div id="status">Game is loading...</div>
+    <h1>Crazy 8s</h1>
 
-    <div id="center-area">
-        <div id="discard-pile">?</div>
+    <div id="game-container">
+
+        <!-- Status message -->
+        <div id="status">Loading game...</div>
+
+        <!-- Discard pile -->
+        <h2>Discard Pile</h2>
+        <div id="discard-pile"></div>
+
+        <!-- Suit selector (hidden by default) -->
+        <div id="suit-selector" style="display:none; margin-top:20px;">
+            <label for="suit-dropdown" style="font-size:1.2rem;">Choose a suit:</label>
+            <select id="suit-dropdown" style="font-size:1.1rem; margin-left:10px;">
+                <option value="♠">♠ Spades</option>
+                <option value="♥">♥ Hearts</option>
+                <option value="♦">♦ Diamonds</option>
+                <option value="♣">♣ Clubs</option>
+            </select>
+            <button id="confirm-suit" style="margin-left:15px; padding:5px 12px;">OK</button>
+        </div>
+
+        <!-- Player hand -->
+        <h2>Your Hand</h2>
+        <div id="player-hand"></div>
+
+        <!-- Draw button -->
         <button id="draw-button">Draw Card</button>
-    </div>
 
-    <div id="player-hand"></div>
+    </div>
 
     <script src="script.js"></script>
 </body>
