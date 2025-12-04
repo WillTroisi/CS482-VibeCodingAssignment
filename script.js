@@ -1,270 +1,244 @@
-// -------------------------------
-// GLOBAL STATE
-// -------------------------------
+// =========================
+// Deck + Game State
+// =========================
+const suits = ["♠", "♥", "♦", "♣"];
+const ranks = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
 
 let deck = [];
 let playerHand = [];
 let computerHand = [];
 let discardPile = [];
 
-let suits = ["♠", "♥", "♦", "♣"];
-let ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+let awaitingSuitChoice = false;
+let storedEightCard = null;
+let gameOver = false;
 
-// -------------------------------
-// INITIAL SETUP
-// -------------------------------
-
-function initGame() {
-    deck = createDeck();
-    shuffle(deck);
-
-    // Deal 7 cards to each
-    for (let i = 0; i < 7; i++) {
-        playerHand.push(deck.pop());
-        computerHand.push(deck.pop());
-    }
-
-    // Start the discard pile
-    discardPile.push(deck.pop());
-
-    updateDisplay();
-    setStatus("Your turn! Play a card or draw.");
-}
-
-// -------------------------------
-// DECK LOGIC
-// -------------------------------
+// =========================
+// Utility Functions
+// =========================
 
 function createDeck() {
-    let d = [];
-    for (let s of suits) {
-        for (let r of ranks) {
-            d.push({ rank: r, suit: s });
+    deck = [];
+    for (let suit of suits) {
+        for (let rank of ranks) {
+            deck.push(rank + suit);
         }
     }
-    return d;
 }
 
-function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
+function shuffle(deck) {
+    for (let i = deck.length - 1; i > 0; i--) {
         let j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        [deck[i], deck[j]] = [deck[j], deck[i]];
     }
 }
 
-// -------------------------------
-// UI UPDATES
-// -------------------------------
-
-function updateDisplay() {
-    const top = discardPile[discardPile.length - 1];
-    document.getElementById("discard-pile").innerText = cardToString(top);
-
-    const handDiv = document.getElementById("player-hand");
-    handDiv.innerHTML = "";
-
-    playerHand.forEach((card, index) => {
-        const cardDiv = document.createElement("div");
-        cardDiv.className = "card";
-        cardDiv.innerText = cardToString(card);
-
-        cardDiv.onclick = () => playCard(index);
-
-        handDiv.appendChild(cardDiv);
-    });
+function drawCard() {
+    if (deck.length === 0) reshuffle();
+    return deck.pop();
 }
 
-function cardToString(card) {
-    return `${card.rank}${card.suit}`;
+function reshuffle() {
+    let top = discardPile.pop();
+    deck = shuffle(discardPile);
+    discardPile = [top];
 }
 
-function setStatus(msg) {
-    document.getElementById("status").innerText = msg;
-}
+function isPlayable(card, topCard) {
+    const cardRank = card.slice(0, -1);
+    const topRank = topCard.slice(0, -1);
+    const cardSuit = card.slice(-1);
+    const topSuit = topCard.slice(-1);
 
-// -------------------------------
-// PLAYER ACTIONS
-// -------------------------------
-
-function playCard(index) {
-    const card = playerHand[index];
-    const top = discardPile[discardPile.length - 1];
-
-    if (!isValidPlay(card, top)) {
-        setStatus("Invalid card. Play matching rank/suit or an 8.");
-        return;
-    }
-
-    playerHand.splice(index, 1);
-    discardPile.push(card);
-
-    if (card.rank === "8") {
-        chooseSuitForWild(card);
-        return;
-    }
-
-    updateDisplay();
-    setStatus("Computer's turn...");
-    setTimeout(computerTurn, 1000);
-}
-
-function isValidPlay(card, top) {
     return (
-        card.rank === "8" ||
-        card.rank === top.rank ||
-        card.suit === top.suit
+        cardRank === "8" || 
+        cardRank === topRank || 
+        cardSuit === topSuit
     );
 }
 
-// -------------------------------
-// WILD 8 SUIT SELECTION (PLAYER)
-// -------------------------------
+// =========================
+// Game Initialization
+// =========================
 
-function chooseSuitForWild(card) {
-    // Show the dropdown UI
-    document.getElementById("suit-selector").style.display = "block";
-    setStatus("You played an 8! Choose a suit.");
+function startGame() {
+    createDeck();
+    shuffle(deck);
 
-    // When player confirms
-    document.getElementById("confirm-suit").onclick = () => {
-        const chosen = document.getElementById("suit-dropdown").value;
+    playerHand = [];
+    computerHand = [];
+    discardPile = [];
 
-        // Apply suit to the card
-        card.suit = chosen;
+    gameOver = false;
 
-        // Hide the menu again
-        document.getElementById("suit-selector").style.display = "none";
+    for (let i = 0; i < 7; i++) {
+        playerHand.push(drawCard());
+        computerHand.push(drawCard());
+    }
 
-        updateDisplay();
-        setStatus("Computer's turn...");
-        setTimeout(computerTurn, 800);
-    };
+    discardPile.push(drawCard());
+
+    updateUI();
+    setStatus("Your turn! Play a card or draw.");
 }
 
-
-// -------------------------------
-// DRAW CARD
-// -------------------------------
-
-document.getElementById("draw-button").onclick = () => {
-    if (deck.length === 0) {
-        setStatus("Deck empty!");
-        return;
-    }
-
-    const card = deck.pop();
+document.getElementById("draw-button").onclick = function () {
+    if (awaitingSuitChoice || gameOver) return;
+    let card = drawCard();
     playerHand.push(card);
-    updateDisplay();
+    updateUI();
 
-    const top = discardPile[discardPile.length - 1];
-
-    if (isValidPlay(card, top)) {
-        setStatus("You drew a playable card! Playing it...");
-        setTimeout(() => {
-            playCard(playerHand.length - 1);
-        }, 500);
-    } else {
-        setStatus("No valid play. Computer's turn...");
-        setTimeout(computerTurn, 1000);
-    }
+    setStatus("You drew a card. Computer's turn...");
+    setTimeout(computerTurn, 1200);
 };
 
-// -------------------------------
-// COMPUTER LOGIC (Iteration 3)
-// -------------------------------
-
-function chooseRandomSuit() {
-    return suits[Math.floor(Math.random() * suits.length)];
+function setStatus(msg) {
+    document.getElementById("status").textContent = msg;
 }
 
-function computerTurn() {
-    setStatus("Computer is thinking...");
+// =========================
+// Check Win/Lose
+// =========================
 
-    const top = discardPile[discardPile.length - 1];
-
-    // 1. Try to find a valid card (non-8 first)
-    let playIndex = -1;
-
-    // Try non-8 valid card
-    for (let i = 0; i < computerHand.length; i++) {
-        const card = computerHand[i];
-        if (card.rank !== "8" && isValidPlay(card, top)) {
-            playIndex = i;
-            break;
-        }
+function checkWinLose() {
+    if (playerHand.length === 0) {
+        setStatus("🎉 You win! All your cards are gone!");
+        gameOver = true;
+        return true;
     }
 
-    // Try 8 if no other valid card
-    if (playIndex === -1) {
-        for (let i = 0; i < computerHand.length; i++) {
-            const card = computerHand[i];
-            if (card.rank === "8") {
-                playIndex = i;
-                break;
-            }
-        }
+    if (computerHand.length === 0) {
+        setStatus("💀 You lose! Computer has no cards left!");
+        gameOver = true;
+        return true;
     }
 
-    // If found a playable card → play it
-    if (playIndex !== -1) {
-        const card = computerHand.splice(playIndex, 1)[0];
-        discardPile.push(card);
+    return false;
+}
 
-        if (card.rank === "8") {
-            const newSuit = chooseRandomSuit();
-            card.suit = newSuit;
-            setStatus(`Computer played 8 and chose ${newSuit}`);
-        } else {
-            setStatus(`Computer played ${cardToString(card)}`);
-        }
+// =========================
+// Player Move
+// =========================
 
-        updateDisplay();
+function playCard(card) {
+    if (awaitingSuitChoice || gameOver) return;
 
-        setTimeout(() => {
-            setStatus("Your turn! Play a card or draw.");
-        }, 800);
+    let top = discardPile[discardPile.length - 1];
 
+    if (!isPlayable(card, top)) {
+        setStatus("You cannot play that card!");
         return;
     }
 
-    // 2. No playable card → draw one
-    if (deck.length > 0) {
-        const drawn = deck.pop();
-        computerHand.push(drawn);
-        setStatus("Computer drew a card.");
-
-        if (isValidPlay(drawn, top)) {
-            setTimeout(() => {
-                const card = computerHand.pop();
-                discardPile.push(card);
-
-                if (card.rank === "8") {
-                    const newSuit = chooseRandomSuit();
-                    card.suit = newSuit;
-                    setStatus(`Computer played 8 and chose ${newSuit}`);
-                } else {
-                    setStatus(`Computer played ${cardToString(card)}`);
-                }
-
-                updateDisplay();
-                setTimeout(() => {
-                    setStatus("Your turn! Play a card or draw.");
-                }, 800);
-            }, 800);
-
-            return;
-        }
-    } else {
-        setStatus("Deck empty! Computer passes.");
+    // Handle 8
+    if (card.startsWith("8")) {
+        awaitingSuitChoice = true;
+        storedEightCard = card;
+        document.getElementById("suit-selector").style.display = "block";
+        setStatus("Choose a suit for the 8...");
+        return;
     }
 
-    setTimeout(() => {
-        setStatus("Your turn! Play a card or draw.");
-    }, 800);
+    // Normal play
+    playerHand = playerHand.filter(c => c !== card);
+    discardPile.push(card);
+    updateUI();
+
+    if (checkWinLose()) return;
+
+    setStatus("Computer's turn...");
+    setTimeout(computerTurn, 1200);
 }
 
-// -------------------------------
-// START GAME
-// -------------------------------
+// =========================
+// Confirm Suit after 8
+// =========================
 
-initGame();
+document.getElementById("confirm-suit").onclick = function () {
+    if (gameOver) return;
+
+    const chosenSuit = document.getElementById("suit-dropdown").value;
+    const newCard = "8" + chosenSuit;
+
+    playerHand = playerHand.filter(c => c !== storedEightCard);
+    discardPile.push(newCard);
+
+    document.getElementById("suit-selector").style.display = "none";
+
+    awaitingSuitChoice = false;
+    storedEightCard = null;
+
+    updateUI();
+
+    if (checkWinLose()) return;
+
+    setStatus("Computer's turn...");
+    setTimeout(computerTurn, 1200);
+};
+
+// =========================
+// Computer Turn
+// =========================
+
+function computerTurn() {
+    if (gameOver) return;
+
+    let top = discardPile[discardPile.length - 1];
+    let playable = computerHand.find(card => isPlayable(card, top));
+
+    if (playable) {
+        if (playable.startsWith("8")) {
+            const randomSuit = suits[Math.floor(Math.random() * suits.length)];
+            playable = "8" + randomSuit;
+        }
+
+        computerHand = computerHand.filter(c => !c.startsWith(playable[0])); 
+        discardPile.push(playable);
+        updateUI();
+
+        setStatus("Computer played a card");
+
+        if (checkWinLose()) return;
+    } else {
+        let card = drawCard();
+        computerHand.push(card);
+        setStatus("Computer draws a card.");
+    }
+
+    updateUI();
+}
+
+// =========================
+// UI Rendering
+// =========================
+
+function updateUI() {
+    // Player hand
+    const handDiv = document.getElementById("player-hand");
+    handDiv.innerHTML = "";
+
+    playerHand.forEach(card => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.textContent = card;
+        div.onclick = () => playCard(card);
+        handDiv.appendChild(div);
+    });
+
+    // Computer hand (face-down)
+    const computerDiv = document.getElementById("computer-hand");
+    computerDiv.innerHTML = "";
+
+    computerHand.forEach(card => {
+        const div = document.createElement("div");
+        div.className = "card card-back";
+        computerDiv.appendChild(div);
+    });
+
+    // Discard pile
+    document.getElementById("discard-pile").textContent =
+        discardPile[discardPile.length - 1];
+}
+
+// Start game
+startGame();
